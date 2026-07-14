@@ -1,0 +1,63 @@
+volumes:
+  db2_data:
+    external: true
+
+networks:
+  devops_net:
+    external: true
+
+services:
+  mariadb2:
+    image: mariadb:11
+    container_name: mariadb2_container
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: bnccitconfig
+      MYSQL_DATABASE: login-app      # 🔴 ปรับเป็น login-app ให้ตรงกับ phpMyAdmin
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: bnccitconfig
+    ports:
+      - "3306:3306"
+    volumes:
+      - db2_data:/var/lib/mysql
+    networks:
+      - devops_net
+
+  phpmyadmin2:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma2_container
+    restart: unless-stopped
+    depends_on:
+      - mariadb2
+    environment:
+      PMA_HOST: mariadb2
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "82:80"
+    networks:
+      - devops_net
+
+  nodeapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: node_api
+    restart: unless-stopped
+    depends_on:
+      - mariadb2
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/usr/src/app/package.json
+      - ./package-lock.json:/usr/src/app/package-lock.json
+    environment:
+      - TZ=Asia/Bangkok
+      - DB_HOST=mariadb2               # 🔴 ส่งค่าโฮสต์ฐานข้อมูลให้แอป Node.js รู้จัก
+      - DB_USER=admin                  # 🔴 ส่งยูสเซอร์
+      - DB_PASSWORD=bnccitconfig       # 🔴 ส่งรหัสผ่าน
+      - DB_NAME=login-app              # 🔴 ส่งชื่อฐานข้อมูลจริง (login-app)
+      - DB_PORT=3306
+    networks:
+      - devops_net

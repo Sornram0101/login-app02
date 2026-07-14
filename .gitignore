@@ -1,0 +1,10 @@
+# Node dependency
+node_modules/
+
+# Local env files
+.env
+.env.local
+
+# Docker logs and data
+*.log
+.docker/
